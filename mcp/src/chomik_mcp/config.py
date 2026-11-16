@@ -17,6 +17,7 @@ class Config:
     state_dir: str = field(default_factory=lambda: _env("CHOMIK_STATE_DIR", "/data/state"))
     passwords_file: str = field(default_factory=lambda: _env("CHOMIK_PASSWORDS_FILE", "/data/chomik-passwords.json"))
     env_file: str = field(default_factory=lambda: _env("CHOMIK_ENV_FILE", ".env"))
+    settings_file: str = field(default_factory=lambda: _env("CHOMIK_SETTINGS_FILE", "/data/settings.json"))
 
     def accounts(self) -> dict[str, str]:
         """Configured account letters -> usernames (from CHOMIK_<X>_USER)."""

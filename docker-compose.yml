@@ -5,12 +5,11 @@ services:
     container_name: chomik-mcp
     ports:
       - "8765:8765"
-    env_file: .env
     environment:
-      - CHOMIK_DOWNLOAD_DIR=/data/downloads
-      - CHOMIK_UPLOAD_DIR=/data/uploads
-      - CHOMIK_STATE_DIR=/data/state
-      - CHOMIK_PASSWORDS_FILE=/data/chomik-passwords.json
+      - PANEL_PASSWORD=${PANEL_PASSWORD:?set PANEL_PASSWORD in .env}
+    env_file:
+      - path: .env
+        required: false
     volumes:
       - ./data:/data
     restart: unless-stopped

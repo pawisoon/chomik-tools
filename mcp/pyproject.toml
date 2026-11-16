@@ -1,6 +1,6 @@
 [project]
 name = "chomik-mcp"
-version = "0.1.0"
+version = "1.0.0"
 description = "Self-hostable MCP server for chomikuj.pl: browse, download, upload and clone between accounts."
 readme = "README.md"
 requires-python = ">=3.10"

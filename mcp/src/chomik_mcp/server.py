@@ -55,6 +55,11 @@ class Tools:
 
     # ------------------------------------------------------------ helpers
 
+    def reset_clients(self) -> None:
+        """Forget logged-in clients (accounts changed in the panel)."""
+        with self._lock:
+            self._clients.clear()
+
     def client(self, account: str, fresh: bool = False) -> ChomikClient:
         letter = self.config.letter(account)
         if fresh:
@@ -222,7 +227,7 @@ class Tools:
 
 def build_server(tools: Tools | None = None) -> MCPServer:
     t = tools or Tools()
-    server = MCPServer("chomik", instructions=INSTRUCTIONS, version="0.1.0")
+    server = MCPServer("chomik", instructions=INSTRUCTIONS, version="1.0.0")
 
     @server.tool(annotations=READ)
     def accounts() -> list[dict]:

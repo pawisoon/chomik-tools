@@ -41,42 +41,40 @@ services:
     ports:
       - "8765:8765"
     environment:
-      - CHOMIK_A_USER=your_login
-      - CHOMIK_A_PASSWORD=your_password
-      # - CHOMIK_A_PROFILE_PASSWORD=
-      # - CHOMIK_B_USER=second_login
-      # - CHOMIK_B_PASSWORD=second_password
-      - MCP_TOKEN=long_random_token_min_16_chars   # openssl rand -hex 24
-      - CHOMIK_DOWNLOAD_DIR=/data/downloads
-      - CHOMIK_UPLOAD_DIR=/data/uploads
-      - CHOMIK_STATE_DIR=/data/state
-      - CHOMIK_PASSWORDS_FILE=/data/chomik-passwords.json
+      - PANEL_PASSWORD=choose_a_panel_password
     volumes:
       - ./data:/data
     restart: unless-stopped
 ```
 
 ```bash
-mkdir -p data/downloads data/uploads data/state
 docker compose up -d
 ```
 
-- **Synology / Portainer:** paste the file as a new stack, fill in the variables, deploy.
+Then open **http://<nas>:8765/**, log in with `PANEL_PASSWORD`, and fill in:
+
+1. **Your chomikuj.pl accounts** (login, password, optional profile password). "Sprawdź logowanie" tests each one.
+2. **Passwords of other users' chomiki**: profile passwords, and folder passwords (paste the folder link).
+3. **Connect your AI assistant**: the MCP address, the access token and a ready-to-copy client config.
+
+Everything is saved in `data/` (`settings.json` and `chomik-passwords.json`, both readable only by the container user).
+
+- **Synology / Portainer:** paste the file as a new stack, set the panel password, deploy.
 - **Images:** `linux/amd64` and `linux/arm64` (Synology Intel and ARM, Raspberry Pi).
 - **Uploads:** put files to upload in `data/uploads`. Downloads land in `data/downloads`.
 - **Run as your NAS user:** add `user: "1026:100"` (your uid:gid, see `id` over SSH) so files in `data/` belong to you.
 - **Port taken?** Change `"8765:8765"` to e.g. `"8766:8765"`.
+- **No panel?** Accounts can also come from environment variables (`CHOMIK_A_USER`, `CHOMIK_A_PASSWORD`, ...) and the token from `MCP_TOKEN`; see Configuration below.
 
 ### From a checkout
 
 ```bash
-cp mcp/.env.example .env      # fill in the accounts and MCP_TOKEN
-mkdir -p data/downloads data/uploads data/state
-docker compose up -d          # the repo's docker-compose.yml reads .env
+cp mcp/.env.example .env      # set PANEL_PASSWORD (accounts can go in the panel)
+docker compose up -d          # panel at http://localhost:8765/
 ```
 
-The server listens on `http://<nas>:8765/mcp`. Point your MCP client at it with the
-header `Authorization: Bearer <MCP_TOKEN>`. `GET /health` answers `ok` without a token.
+The settings panel is at `http://<nas>:8765/` and MCP at `http://<nas>:8765/mcp`. Point your MCP
+client at it with the header `Authorization: Bearer <token>` (shown in the panel). `GET /health` answers `ok` without a token.
 
 Example client config (clients that support remote MCP over HTTP):
 
@@ -115,7 +113,9 @@ cd mcp && uv venv && uv pip install -e .
 | `CHOMIK_A_PROFILE_PASSWORD` | Password of a protected profile (optional) |
 | `CHOMIK_PASSWORDS_FILE` | JSON with profile and folder passwords for other users' protected chomiki (default `/data/chomik-passwords.json`) |
 | `CHOMIK_DOWNLOAD_DIR`, `CHOMIK_UPLOAD_DIR`, `CHOMIK_STATE_DIR` | Where downloads go, where uploads are read from, where clone state and job logs live |
-| `MCP_TOKEN` | Bearer token for HTTP (required, 16+ characters) |
+| `PANEL_PASSWORD` | Password for the settings panel (HTTP mode) |
+| `MCP_TOKEN` | Optional fixed bearer token (16+ characters). Without it the panel creates and shows one |
+| `CHOMIK_SETTINGS_FILE` | Where the panel stores accounts and the token (default `/data/settings.json`) |
 | `MCP_PORT` | HTTP port (default 8765) |
 | `MCP_ALLOWED_HOSTS` | Optional comma-separated `host:port` list for DNS-rebinding protection |
 

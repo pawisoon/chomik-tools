@@ -1,6 +1,6 @@
 [project]
 name = "chomik-cloner"
-version = "0.1.0"
+version = "1.0.0"
 description = "Clone a chomikuj.pl account (or someone's public folder) into another account you own."
 readme = "README.md"
 requires-python = ">=3.10"

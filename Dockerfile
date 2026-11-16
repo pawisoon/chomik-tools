@@ -1,5 +1,8 @@
 FROM python:3.12-slim
 
+LABEL org.opencontainers.image.source="https://github.com/pawisoon/chomik-tools" \
+      org.opencontainers.image.description="Self-hostable MCP server for chomikuj.pl with a settings panel"
+
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 WORKDIR /app
 COPY core ./core

@@ -1,6 +1,6 @@
 [project]
 name = "chomik-core"
-version = "0.1.0"
+version = "1.0.0"
 description = "Shared ChomikBox SOAP client for chomikuj.pl: auth, folder tree, download, upload, streaming relay."
 readme = "README.md"
 requires-python = ">=3.10"

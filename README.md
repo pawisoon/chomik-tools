@@ -17,9 +17,9 @@ Related, self-hosted web apps for a NAS:
 
 ```bash
 git clone https://github.com/pawisoon/chomik-tools && cd chomik-tools
-cp mcp/.env.example .env          # accounts + MCP_TOKEN
-mkdir -p data/downloads data/uploads data/state
-docker compose up -d              # pulls ghcr.io/pawisoon/chomik-mcp, serves http://<host>:8765/mcp
+echo "PANEL_PASSWORD=choose_one" > .env
+docker compose up -d              # pulls ghcr.io/pawisoon/chomik-mcp
+# open http://<host>:8765/ to enter your accounts and get the MCP token
 ```
 
 The image is built for `linux/amd64` and `linux/arm64` (Synology Intel and ARM, Raspberry Pi):
