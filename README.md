@@ -1,6 +1,7 @@
 # chomik-tools
 
-Tools for [chomikuj.pl](https://chomikuj.pl) accounts:
+Tools for [chomikuj.pl](https://chomikuj.pl) accounts. Product page (Polish): https://chomik-tools.pawels-apps.workers.dev
+
 
 | Folder | What it is |
 |---|---|
@@ -30,6 +31,11 @@ the command line, see [cloner/README.md](cloner/README.md).
 - The `CHOMIK_A_USER` account is delete-protected in the library itself.
 - Passwords live in `.env` and `chomik-passwords.json` (both git-ignored), never in tool arguments.
 - Captchas aren't solved or bypassed. A captcha stops a run, and rerunning resumes.
+
+## Product page
+
+`site/` is the Polish product page, served as static assets by a Cloudflare Worker:
+`cd site && npx wrangler deploy`.
 
 ## Development
 

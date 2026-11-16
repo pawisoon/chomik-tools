@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chomik Tools: narzędzia do chomikuj.pl</title>
+<meta name="description" content="Narzędzia do samodzielnego hostowania dla serwisu chomikuj.pl: program do pobierania, program do wysyłania plików oraz serwer MCP dla asystentów AI. Darmowe i open source.">
+<meta property="og:title" content="Chomik Tools: narzędzia do chomikuj.pl">
+<meta property="og:description" content="Pobieraj całe foldery na swój serwer NAS, przesyłaj z niego pliki i pozwól asystentowi AI zarządzać twoimi kontami.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐹</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fbf6ee;
+  --bg-2: #f3e9da;
+  --card: #fffdf9;
+  --ink: #1f1a14;
+  --ink-2: #5d5348;
+  --line: #e6d9c6;
+  --accent: #d9732b;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbe3cf;
+  --green: #2f8f5b;
+  --shadow: 0 1px 2px rgba(60, 40, 10, .06), 0 12px 32px -12px rgba(60, 40, 10, .18);
+  --suppi: #ff5a5f;
+  --bmc: #ffdd00;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17130f;
+    --bg-2: #201a14;
+    --card: #221c16;
+    --ink: #f4ece1;
+    --ink-2: #b7aa99;
+    --line: #3a3027;
+    --accent: #f0904a;
+    --accent-ink: #1b120a;
+    --accent-soft: #3a2616;
+    --green: #5cc58b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px -12px rgba(0, 0, 0, .6);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17130f; --bg-2: #201a14; --card: #221c16; --ink: #f4ece1; --ink-2: #b7aa99; --line: #3a3027;
+  --accent: #f0904a; --accent-ink: #1b120a; --accent-soft: #3a2616; --green: #5cc58b;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px -12px rgba(0, 0, 0, .6);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 17px/1.6 "Instrument Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+img { max-width: 100%; display: block; }
+.wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+h1, h2, h3 { font-family: "Bricolage Grotesque", system-ui, sans-serif; line-height: 1.08; letter-spacing: -.02em; }
+h1 { font-size: clamp(40px, 6.4vw, 76px); font-weight: 800; }
+h2 { font-size: clamp(30px, 4.2vw, 48px); font-weight: 800; }
+h3 { font-size: 26px; font-weight: 800; }
+.eyebrow { font: 500 13px/1 "JetBrains Mono", monospace; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); }
+
+/* nav */
+nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+nav .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+.logo { display: flex; align-items: center; gap: 10px; font: 800 20px/1 "Bricolage Grotesque", sans-serif; text-decoration: none; }
+.logo span { font-size: 26px; }
+nav .links { display: flex; gap: 24px; margin-left: auto; font-weight: 500; font-size: 15px; }
+nav .links a { text-decoration: none; color: var(--ink-2); }
+nav .links a:hover { color: var(--ink); }
+nav .links a.btn-primary { color: var(--accent-ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 24px; border-radius: 999px; font-weight: 600; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease; }
+.btn:hover { transform: translateY(-2px); }
+.btn-primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent) 70%, transparent); }
+.btn-ghost { border: 1.5px solid var(--line); background: var(--card); }
+.btn-sm { padding: 9px 16px; font-size: 14px; }
+
+/* hero */
+.hero { padding: 88px 0 72px; }
+.hero .wrap { display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; }
+.hero p.lead { font-size: 20px; color: var(--ink-2); margin: 24px 0 36px; max-width: 34em; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; }
+.badges { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 36px; color: var(--ink-2); font-size: 15px; }
+.badges span::before { content: "✓"; color: var(--green); font-weight: 700; margin-right: 8px; }
+
+.chat { background: var(--card); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow); padding: 22px; display: flex; flex-direction: column; gap: 12px; }
+.chat .top { display: flex; align-items: center; gap: 8px; font: 500 13px "JetBrains Mono", monospace; color: var(--ink-2); padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.chat .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); }
+.msg { padding: 12px 16px; border-radius: 16px; font-size: 15px; max-width: 88%; }
+.msg.user { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; }
+.msg.bot { align-self: flex-start; background: var(--bg-2); border-bottom-left-radius: 4px; }
+.msg.bot code { font: 500 13px "JetBrains Mono", monospace; }
+.bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; margin-top: 10px; }
+.bar i { display: block; height: 100%; width: 100%; background: var(--green); border-radius: 99px; animation: fill 2.4s ease-out both; }
+@keyframes fill { from { width: 4%; } }
+
+/* sections */
+section { padding: 88px 0; }
+.section-head { max-width: 720px; margin-bottom: 48px; }
+.section-head h2 { margin-top: 14px; }
+.alt { background: var(--bg-2); border-block: 1px solid var(--line); }
+
+.tool { display: grid; grid-template-columns: 1fr 1.1fr; gap: 48px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 28px; padding: 44px; box-shadow: var(--shadow); }
+.tool + .tool { margin-top: 28px; }
+.tool:nth-of-type(even) .shot { order: -1; }
+.tag { display: inline-block; padding: 6px 12px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font: 600 13px "JetBrains Mono", monospace; }
+.tool h3 { margin: 16px 0 12px; font-size: clamp(28px, 3.4vw, 38px); }
+.tool p { color: var(--ink-2); }
+.tool ul { list-style: none; margin: 22px 0 28px; display: grid; gap: 10px; }
+.tool li { display: flex; gap: 12px; }
+.tool li::before { content: ""; flex: none; width: 20px; height: 20px; margin-top: 3px; border-radius: 50%; background: var(--accent-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.5l3 3 6-7' fill='none' stroke='%23d9732b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat; }
+.shot { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: #f5f5f5; }
+.shot figcaption { padding: 10px 14px; font-size: 13px; color: #6b6259; background: #fff; border-top: 1px solid #eee; }
+.code { background: #1d1813; color: #f1e7da; border-radius: 16px; padding: 22px; font: 400 13.5px/1.7 "JetBrains Mono", monospace; overflow-x: auto; box-shadow: var(--shadow); }
+.code .k { color: #f0a46a; } .code .s { color: #a8d8a0; } .code .c { color: #8c7e6e; }
+
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; counter-reset: s; }
+.step { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 30px; }
+.step::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--accent); color: var(--accent-ink); font: 800 20px "Bricolage Grotesque", sans-serif; margin-bottom: 20px; }
+.step h3 { font-size: 22px; margin-bottom: 8px; }
+.step p { color: var(--ink-2); }
+.step code { font: 500 14px "JetBrains Mono", monospace; background: var(--bg-2); padding: 2px 6px; border-radius: 6px; }
+
+.safety { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+.safety div { display: flex; gap: 16px; padding: 24px; border-radius: 20px; background: var(--card); border: 1px solid var(--line); }
+.safety b { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); font-size: 20px; }
+
+/* support */
+.support { padding: 96px 0; }
+.support-card { position: relative; overflow: hidden; text-align: center; border-radius: 36px; padding: 72px 32px; background: linear-gradient(135deg, #ffefd9 0%, #ffe1e2 55%, #fff4b8 100%); color: #2a1d10; box-shadow: var(--shadow); }
+.support-card .hamster { font-size: 72px; line-height: 1; margin-bottom: 18px; }
+.support-card h2 { color: #2a1d10; }
+.support-card p { max-width: 36em; margin: 18px auto 40px; font-size: 19px; color: #5a4632; }
+.support-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; }
+.big { display: inline-flex; align-items: center; gap: 14px; padding: 22px 38px; border-radius: 20px; font: 800 22px/1 "Bricolage Grotesque", sans-serif; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease; }
+.big:hover { transform: translateY(-3px) scale(1.02); }
+.big svg { width: 30px; height: 30px; flex: none; }
+.big.suppi { background: var(--suppi); color: #fff; box-shadow: 0 14px 30px -12px rgba(255, 90, 95, .7); }
+.big.bmc { background: var(--bmc); color: #111; box-shadow: 0 14px 30px -12px rgba(200, 160, 0, .7); }
+.big small { display: block; font: 500 13px "Instrument Sans", sans-serif; opacity: .8; margin-top: 6px; text-align: left; }
+
+footer { border-top: 1px solid var(--line); padding: 40px 0 56px; color: var(--ink-2); font-size: 15px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 32px; justify-content: space-between; }
+footer .gh { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+
+@media (max-width: 900px) {
+  .hero .wrap, .tool { grid-template-columns: 1fr; }
+  .tool { padding: 28px; }
+  .tool:nth-of-type(even) .shot { order: 0; }
+  .steps, .safety { grid-template-columns: 1fr; }
+  nav .links a:not(.btn) { display: none; }
+  .hero { padding-top: 56px; }
+  section { padding: 64px 0; }
+}
+@media (max-width: 520px) {
+  .wrap { padding: 0 16px; }
+  .big { width: 100%; justify-content: center; }
+  .support-card { padding: 52px 20px; border-radius: 26px; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#"><span>🐹</span>Chomik Tools</a>
+    <div class="links">
+      <a href="#narzedzia">Narzędzia</a>
+      <a href="#jak">Jak to działa</a>
+      <a href="#bezpieczenstwo">Bezpieczeństwo</a>
+      <a class="btn btn-primary btn-sm" href="#wsparcie">Wesprzyj projekt</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Darmowe i open source</p>
+      <h1 style="margin-top:18px">Narzędzia do samodzielnego hostowania dla <em>chomikuj.pl</em></h1>
+      <p class="lead">Pobieraj całe foldery na swój serwer NAS, przesyłaj z niego pliki i pozwól asystentowi AI zarządzać twoimi kontami. Darmowe, open source i działające na twoim własnym sprzęcie.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="#narzedzia">Zobacz narzędzia</a>
+        <a class="btn btn-ghost" href="#wsparcie">☕ Wesprzyj projekt</a>
+      </div>
+      <div class="badges"><span>Darmowe i open source</span><span>Działa na twoim serwerze NAS</span><span>Twoje dane pozostają u ciebie</span></div>
+    </div>
+    <div class="chat" aria-label="Przykładowe zapytanie do asystenta">
+      <div class="top"><span class="dot"></span>chomik-mcp · Asystent AI</div>
+      <div class="msg user">Skopiuj folder „Moje książki” z konta A na konto B.</div>
+      <div class="msg bot">Rozpoczynam kopiowanie: 214 plików, 38 GB. Skopiuję to po stronie serwera, więc nic nie przechodzi przez twoje połączenie.<div class="bar"><i></i></div></div>
+      <div class="msg bot">✅ Skopiowano 214 z 214 plików. Wszystko trafiło na konto B.</div>
+      <div class="msg user">Pobierz ten folder też na mój NAS.</div>
+      <div class="msg bot">Pobieranie rozpoczęte. Pliki trafiają do katalogu <code>/data/downloads</code>.</div>
+    </div>
+  </div>
+</header>
+
+<section id="narzedzia" class="alt">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Narzędzia</p>
+      <h2>Trzy narzędzia, jeden cel: twoje pliki pod twoją kontrolą</h2>
+    </div>
+
+    <article class="tool">
+      <div>
+        <span class="tag">Panel internetowy</span>
+        <h3>Chomik Downloader</h3>
+        <p>Pobiera całe foldery z chomikuj.pl prosto na twój serwer NAS. Wklej link do folderu, wybierz opcje i obserwuj na żywo w przeglądarce postęp pobierania każdego pliku.</p>
+        <ul>
+          <li>Pobieranie rekurencyjne z podfolderami</li>
+          <li>Zachowuje oryginalną strukturę folderów</li>
+          <li>Wznawia przerwane pobieranie</li>
+          <li>Filtry według typu i rozmiaru pliku</li>
+          <li>Opcjonalne hasło do panelu</li>
+        </ul>
+        <a class="btn btn-ghost" href="https://github.com/pawisoon/chomik-web-downloader">Zobacz na GitHubie →</a>
+      </div>
+      <figure class="shot">
+        <img src="img/downloader.png" alt="Chomik Downloader: aktualny postęp w przeglądarce" width="1280" height="900" loading="lazy">
+        <figcaption>Aktualny postęp w przeglądarce</figcaption>
+      </figure>
+    </article>
+
+    <article class="tool">
+      <div>
+        <span class="tag">Panel internetowy</span>
+        <h3>Chomik Uploader</h3>
+        <p>Panel internetowy do wysyłania plików z twojego serwera NAS na konto na chomikuj.pl. Przeglądaj swoje dyski, zaznaczaj pliki lub całe foldery i wysyłaj je jednym kliknięciem.</p>
+        <ul>
+          <li>Przeglądaj foldery NAS w przeglądarce</li>
+          <li>Prześlij cały folder wraz z podfolderami</li>
+          <li>Postęp wysyłania każdego pliku na żywo</li>
+          <li>Pliki są odczytywane na miejscu, nigdy nie są kopiowane</li>
+          <li>Dostęp chroniony hasłem</li>
+        </ul>
+        <a class="btn btn-ghost" href="https://github.com/pawisoon/chomik-web-uploader">Zobacz na GitHubie →</a>
+      </div>
+      <figure class="shot">
+        <img src="img/uploader.png" alt="Chomik Uploader: przeglądarka folderów na serwerze NAS" width="1280" height="900" loading="lazy">
+        <figcaption>Przeglądarka folderów na serwerze NAS</figcaption>
+      </figure>
+    </article>
+
+    <article class="tool">
+      <div>
+        <span class="tag">Asystent AI</span>
+        <h3>chomik-mcp</h3>
+        <p>Serwer MCP, który łączy twoje konta na chomikuj.pl z asystentem AI. Wystarczy poprosić prostym językiem, a on wyświetli listę, pobierze, prześle lub skopiuje całe konta za ciebie.</p>
+        <ul>
+          <li>Przeglądaj foldery i pliki na wszystkich swoich kontach</li>
+          <li>Pobieranie i wysyłanie plików jako zadania w tle</li>
+          <li>Skopiuj całe konto do innego, po stronie serwera</li>
+          <li>Skopiuj foldery publiczne na swoje konto</li>
+          <li>Obsługuje hasła do profili i folderów z pliku konfiguracyjnego</li>
+          <li>Nigdy niczego nie usuwa</li>
+        </ul>
+        <a class="btn btn-ghost" href="https://github.com/pawisoon/chomik-tools">Zobacz na GitHubie →</a>
+      </div>
+      <div>
+        <pre class="code" aria-label="Przykładowa konfiguracja klienta MCP"><span class="c"># Przykładowa konfiguracja klienta MCP</span>
+{
+  <span class="k">"mcpServers"</span>: {
+    <span class="k">"chomik"</span>: {
+      <span class="k">"type"</span>: <span class="s">"http"</span>,
+      <span class="k">"url"</span>: <span class="s">"http://nas.local:8765/mcp"</span>,
+      <span class="k">"headers"</span>: {
+        <span class="k">"Authorization"</span>: <span class="s">"Bearer TWOJ_TOKEN"</span>
+      }
+    }
+  }
+}</pre>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section id="jak">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Jak to działa</p>
+      <h2>Zainstaluj i uruchom w trzech krokach</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <h3>Zainstaluj</h3>
+        <p>Jeden kontener Docker, jedno polecenie <code>docker compose up</code>. Działa na Synology, Linuksie, macOS, Windowsie i Raspberry Pi.</p>
+      </div>
+      <div class="step">
+        <h3>Połącz</h3>
+        <p>Otwórz panel w przeglądarce albo podłącz swojego klienta MCP do serwera za pomocą tokenu.</p>
+      </div>
+      <div class="step">
+        <h3>Po prostu zapytaj</h3>
+        <p>„Skopiuj folder Książki z konta A na konto B”, a asystent zajmie się resztą, a ty możesz śledzić postęp.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="bezpieczenstwo" class="alt">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Bezpieczeństwo</p>
+      <h2>Bezpieczeństwo od samego początku</h2>
+    </div>
+    <div class="safety">
+      <div><b>🔑</b><p>Twoje hasła pozostają na twoim serwerze w pliku konfiguracyjnym. Nigdy nie trafiają do czatu z asystentem.</p></div>
+      <div><b>🛡️</b><p>Żadne z tych narzędzi nie usuwa, nie przenosi ani nie zmienia nazw plików na chomikuj.pl.</p></div>
+      <div><b>🤖</b><p>Captcha nigdy nie jest omijana. Zadanie zatrzymuje się i możesz je wznowić później.</p></div>
+      <div><b>👀</b><p>Kod źródłowy jest publicznie dostępny, więc możesz sprawdzić każdą linię.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="wsparcie" class="support">
+  <div class="wrap">
+    <div class="support-card">
+      <div class="hamster">🐹☕</div>
+      <h2>Podobają ci się te narzędzia?</h2>
+      <p>Są darmowe i na licencji open source. Jeśli dzięki nim zaoszczędzisz czas, postaw mi kawę. Każde wsparcie pomaga utrzymać ten projekt przy życiu.</p>
+      <div class="support-btns">
+        <a class="big suppi" href="https://suppi.pl/pawels" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.5c2.1 0 3.6 1.2 4.4 2.5.8-1.3 2.3-2.5 4.4-2.5 3.7 0 5.7 3.9 4.2 7.3C19.5 16.4 12 21 12 21z"/></svg>
+          <span>Wsparcie na Suppi<small>suppi.pl/pawels</small></span>
+        </a>
+        <a class="big bmc" href="https://buymeacoffee.com/pawisoon" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M6 2v2M10 2v2M14 2v2"/></svg>
+          <span>Buy Me a Coffee<small>buymeacoffee.com/pawisoon</small></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <div class="logo" style="margin-bottom:10px"><span>🐹</span>Chomik Tools</div>
+      <p>Stworzone z troską przez pawisoon</p>
+    </div>
+    <div>
+      <p style="margin-bottom:8px;font-weight:600;color:var(--ink)">Kod źródłowy na GitHubie</p>
+      <div class="gh">
+        <a href="https://github.com/pawisoon/chomik-web-downloader">Chomik Downloader</a>
+        <a href="https://github.com/pawisoon/chomik-web-uploader">Chomik Uploader</a>
+        <a href="https://github.com/pawisoon/chomik-tools">chomik-mcp</a>
+      </div>
+    </div>
+    <p style="flex-basis:100%;font-size:13px">Nie jesteśmy powiązani z serwisem chomikuj.pl. Korzystaj z tych narzędzi wyłącznie w przypadku plików, do których masz prawo kopiowania.</p>
+  </div>
+</footer>
+
+</body>
+</html>
