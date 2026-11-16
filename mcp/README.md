@@ -28,19 +28,52 @@ multi-hour clone and check on it later.
 Nothing is ever deleted, moved or renamed on chomikuj.pl. There is no tool for it,
 and chomik-core additionally delete-protects the `CHOMIK_A_USER` account.
 
-## Run with Docker
+## Run with Docker (no clone needed)
 
-From the repository root:
+Create a folder for the data, e.g. `/volume1/docker/chomik-mcp`, and put this
+`docker-compose.yml` in it:
+
+```yaml
+services:
+  chomik-mcp:
+    image: ghcr.io/pawisoon/chomik-mcp:latest
+    container_name: chomik-mcp
+    ports:
+      - "8765:8765"
+    environment:
+      - CHOMIK_A_USER=your_login
+      - CHOMIK_A_PASSWORD=your_password
+      # - CHOMIK_A_PROFILE_PASSWORD=
+      # - CHOMIK_B_USER=second_login
+      # - CHOMIK_B_PASSWORD=second_password
+      - MCP_TOKEN=long_random_token_min_16_chars   # openssl rand -hex 24
+      - CHOMIK_DOWNLOAD_DIR=/data/downloads
+      - CHOMIK_UPLOAD_DIR=/data/uploads
+      - CHOMIK_STATE_DIR=/data/state
+      - CHOMIK_PASSWORDS_FILE=/data/chomik-passwords.json
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+```
+
+```bash
+mkdir -p data/downloads data/uploads data/state
+docker compose up -d
+```
+
+- **Synology / Portainer:** paste the file as a new stack, fill in the variables, deploy.
+- **Images:** `linux/amd64` and `linux/arm64` (Synology Intel and ARM, Raspberry Pi).
+- **Uploads:** put files to upload in `data/uploads`. Downloads land in `data/downloads`.
+- **Run as your NAS user:** add `user: "1026:100"` (your uid:gid, see `id` over SSH) so files in `data/` belong to you.
+- **Port taken?** Change `"8765:8765"` to e.g. `"8766:8765"`.
+
+### From a checkout
 
 ```bash
 cp mcp/.env.example .env      # fill in the accounts and MCP_TOKEN
 mkdir -p data/downloads data/uploads data/state
-cp core/chomik-passwords.example.json data/chomik-passwords.json   # optional
-docker compose up -d
+docker compose up -d          # the repo's docker-compose.yml reads .env
 ```
-
-The compose file uses the published image `ghcr.io/pawisoon/chomik-mcp:latest`
-(amd64 and arm64). Uncomment `build: .` to build from the checkout instead.
 
 The server listens on `http://<nas>:8765/mcp`. Point your MCP client at it with the
 header `Authorization: Bearer <MCP_TOKEN>`. `GET /health` answers `ok` without a token.

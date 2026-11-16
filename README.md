@@ -25,7 +25,8 @@ docker compose up -d              # pulls ghcr.io/pawisoon/chomik-mcp, serves ht
 The image is built for `linux/amd64` and `linux/arm64` (Synology Intel and ARM, Raspberry Pi):
 `docker pull ghcr.io/pawisoon/chomik-mcp:latest`.
 
-Details in [mcp/README.md](mcp/README.md). The cloner also works on its own from
+Without cloning: copy the `docker-compose.yml` from [mcp/README.md](mcp/README.md#run-with-docker-no-clone-needed)
+(works as a Synology / Portainer stack). Details in [mcp/README.md](mcp/README.md). The cloner also works on its own from
 the command line, see [cloner/README.md](cloner/README.md).
 
 ## Safety
