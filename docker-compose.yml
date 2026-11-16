@@ -1,6 +1,8 @@
 services:
   chomik-mcp:
-    build: .
+    image: ghcr.io/pawisoon/chomik-mcp:latest
+    # build: .   # to build from this checkout instead
+    container_name: chomik-mcp
     ports:
       - "8765:8765"
     env_file: .env

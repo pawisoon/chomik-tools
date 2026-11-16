@@ -36,8 +36,11 @@ From the repository root:
 cp mcp/.env.example .env      # fill in the accounts and MCP_TOKEN
 mkdir -p data/downloads data/uploads data/state
 cp core/chomik-passwords.example.json data/chomik-passwords.json   # optional
-docker compose up -d --build
+docker compose up -d
 ```
+
+The compose file uses the published image `ghcr.io/pawisoon/chomik-mcp:latest`
+(amd64 and arm64). Uncomment `build: .` to build from the checkout instead.
 
 The server listens on `http://<nas>:8765/mcp`. Point your MCP client at it with the
 header `Authorization: Bearer <MCP_TOKEN>`. `GET /health` answers `ok` without a token.
