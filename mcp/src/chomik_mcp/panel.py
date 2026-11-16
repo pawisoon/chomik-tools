@@ -31,7 +31,7 @@ T = {  # Polish UI strings (DeepL)
     "wrong_pw": "Nieprawidłowe hasło",
     "no_panel_pw": "Aby otworzyć ten panel, ustaw zmienną środowiskową PANEL_PASSWORD.",
     "accounts": "Twoje konta na chomikuj.pl", "account": "Konto", "user": "Login", "password": "Hasło",
-    "profile_pw": "Hasło do profilu (opcjonalne)", "keep": "Zostaw puste, żeby zachować zapisane hasło",
+    "profile_pw": "Hasło do profilu (opcjonalne)", "keep": "Zostaw puste, żeby zachować zapisane hasło", "saved_ph": "•••••• (zapisano)",
     "save_accounts": "Zapisz konta", "add_account": "Dodaj konto", "remove": "Usuń", "test": "Sprawdź logowanie",
     "test_ok": "Logowanie działa", "test_fail": "Logowanie nie powiodło się", "saved": "Zapisano",
     "protected": "Pierwsze konto (A) jest zabezpieczone przed usunięciem.",
@@ -273,8 +273,8 @@ class Panel:
               </div>
               <div class="grid3">
                 <label>{T['user']}<input name="user:{letter}" value="{_e(user)}" autocomplete="off" required></label>
-                <label>{T['password']}<input type="password" name="password:{letter}" placeholder="{_e(pw_hint)}" autocomplete="new-password"></label>
-                <label>{T['profile_pw']}<input type="password" name="profile:{letter}" placeholder="{_e(T['keep'] if has_profile else '')}" autocomplete="new-password" oninput="this.form['profile_set:{letter}'].value=this.value?'1':''"></label>
+                <label>{T['password']}<input type="password" name="password:{letter}" placeholder="{_e(T['saved_ph'] if has_pw else '')}" title="{_e(pw_hint)}" autocomplete="new-password"></label>
+                <label>{T['profile_pw']}<input type="password" name="profile:{letter}" placeholder="{_e(T['saved_ph'] if has_profile else '')}" title="{_e(T['keep'] if has_profile else '')}" autocomplete="new-password" oninput="this.form['profile_set:{letter}'].value=this.value?'1':''"></label>
               </div>
               <input type="hidden" name="profile_set:{letter}" value="">
               <div class="test" id="test-{letter}"></div>
