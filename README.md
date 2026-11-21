@@ -5,7 +5,7 @@ Tools for [chomikuj.pl](https://chomikuj.pl) accounts. Product page (Polish): ht
 
 | Folder | What it is |
 |---|---|
-| [`mcp/`](mcp) | **chomik-mcp**: self-hostable MCP server. Lets an AI client browse, download, upload and clone between your accounts |
+| [`mcp/`](mcp) | **chomik-mcp**: self-hostable MCP server. Lets an AI client search, browse, download, upload and clone between your accounts. Also a [Sonarr/Radarr fallback](mcp/README.md#sonarr--radarr-fallback) (Newznab indexer + SABnzbd client) |
 | [`cloner/`](cloner) | **chomik-clone**: copies a whole account, one folder, or someone's public folder into another account you own, server-side |
 | [`core/`](core) | **chomik-core**: the shared Python library (ChomikBox API, website session, profile/folder passwords) |
 

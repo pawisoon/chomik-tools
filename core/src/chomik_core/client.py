@@ -59,6 +59,9 @@ class ChomikClient:
     URL_RETRY_DELAYS: tuple[float, ...] = (15, 60)
     # Waits between attempts when box.chomikuj.pl drops or times out a SOAP call.
     NET_RETRY_DELAYS: tuple[float, ...] = (10, 30, 90)
+    # box.chomikuj.pl answers HTTP 500 ("unable to process the request") to roughly every other call
+    # at times (seen 2026-11-21, Auth and Download alike); the same call then succeeds on retry.
+    SERVER_RETRY_DELAYS: tuple[float, ...] = (2, 5, 15, 30)
 
     def __init__(
         self,
@@ -115,20 +118,34 @@ class ChomikClient:
     def _post(self, action: str, inner_xml: str) -> ET.Element:
         """POST one SOAP call, return the <{action}Result> element."""
         body = soap.envelope(action, inner_xml).encode("utf-8")
-        delays = self.NET_RETRY_DELAYS
-        for attempt in range(len(delays) + 1):
+        server_delays = list(self.SERVER_RETRY_DELAYS)
+        while True:
+            delays = self.NET_RETRY_DELAYS
+            for attempt in range(len(delays) + 1):
+                try:
+                    r = self.session.post(soap.SOAP_URL, data=body, headers=soap.headers(action),
+                                          timeout=self.SOAP_TIMEOUT)
+                    break
+                except requests.RequestException as e:
+                    if attempt == len(delays):
+                        raise ProtocolError(f"{action}: request failed: {e}") from e
+                    log.warning("%s: network error (%s); retry %d in %ss", action, e, attempt + 1, delays[attempt])
+                    self._sleep(delays[attempt])
             try:
-                r = self.session.post(soap.SOAP_URL, data=body, headers=soap.headers(action), timeout=self.SOAP_TIMEOUT)
+                root = soap.parse(r.text)
+            except ProtocolError:
+                if r.status_code < 500 or not server_delays:
+                    raise
+                root = None
+            result = soap.find(root, action + "Result") if root is not None else None
+            if result is not None:
                 break
-            except requests.RequestException as e:
-                if attempt == len(delays):
-                    raise ProtocolError(f"{action}: request failed: {e}") from e
-                log.warning("%s: network error (%s); retry %d in %ss", action, e, attempt + 1, delays[attempt])
-                self._sleep(delays[attempt])
-        root = soap.parse(r.text)
-        result = soap.find(root, action + "Result")
-        if result is None:
-            fault = soap.find(root, "faultstring")
+            fault = soap.find(root, "faultstring") if root is not None else None
+            if r.status_code >= 500 and server_delays:
+                wait = server_delays.pop(0)
+                log.warning("%s: server error HTTP %s; retry in %ss", action, r.status_code, wait)
+                self._sleep(wait)
+                continue
             raise ProtocolError(f"{action}: no {action}Result (HTTP {r.status_code}, fault={getattr(fault, 'text', None)!r})")
         seq = soap.child(result, "messageSequence")
         server_stamp = soap.text(seq, "stamp")
@@ -295,6 +312,21 @@ class ChomikClient:
                         f.url = got.url
                         return f
         raise DownloadError(f"chomikuj withheld the download URL for {f.name!r} after {len(delays)} attempts")
+
+    def resolve_hit(self, hit) -> RemoteFile:
+        """Turn a search.SearchHit (or anything with id, name, folder_path) into a downloadable RemoteFile.
+
+        Lists the containing folder to get the exact size and the agreement.
+        Falls back to matching by name, since the SOAP listing was seen to
+        renumber or hide duplicates.
+        """
+        listing = self.list_files(hit.folder_path, missing_ok=True)
+        match = next((f for f in listing.files if f.id == str(hit.id)), None)
+        match = match or next((f for f in listing.files if f.name == hit.name), None)
+        if match is None:
+            raise DownloadError(f"{hit.name!r} is no longer listed in {hit.folder_path} "
+                                f"(deleted, moved, or the folder needs a password)")
+        return match
 
     def _download_inner(self, entries: str) -> str:
         return (

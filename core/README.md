@@ -61,6 +61,9 @@ print(a.balance)  # transfer quota, refreshed by every Download call
 | `upload_file(path, dest)` | convenience wrapper; creates `dest` |
 | `relay_file(src, file, dst, folder)` | download stream piped into upload |
 | `walk_public(client, url)` | other users' public folders, recursive |
+| `Searcher().search(query, file_type=, size_from_mb=, size_to_mb=, page=)` | site-wide search (website, no login); 25 `SearchHit`s per page, sizes rounded; at least 2 s between requests |
+| `resolve_hit(hit)` | lists the hit's folder to get exact size + agreement, ready for `download_to` |
+| `search.hit_from_url(url)` | a chomikuj.pl file link as a `SearchHit` |
 
 Errors all derive from `ChomikError` (`AuthError`, `ApiError`, `DownloadError`,
 `UploadError`, `ProtocolError`). The client logs to the `chomik_core` logger and

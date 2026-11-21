@@ -94,6 +94,18 @@ class Settings:
         self.save()
         return self.data["mcp_token"]
 
+    # ------------------------------------------------------- arr API key
+
+    def arr_api_key(self) -> str:
+        """API key Sonarr/Radarr use for /arr/*. ARR_API_KEY from the environment wins; else created once."""
+        env = os.environ.get("ARR_API_KEY", "")
+        if len(env) >= 16:
+            return env
+        if not self.data.get("arr_api_key"):
+            self.data["arr_api_key"] = secrets.token_hex(16)  # hex: arr UIs and URLs take it without escaping
+            self.save()
+        return self.data["arr_api_key"]
+
 
 def load_passwords_file(path: str) -> dict:
     if os.path.exists(path):
