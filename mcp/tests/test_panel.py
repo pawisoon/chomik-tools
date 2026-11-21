@@ -96,6 +96,16 @@ def test_token_shown_in_panel_and_required_on_mcp(env):
     assert client.get("/mcp/", headers={"Authorization": f"Bearer {token}"}).status_code == 401
 
 
+def test_arr_settings_shown_in_panel(env, monkeypatch):
+    client, settings, *_ = env
+    login(client)
+    page = client.get("/").text
+    assert "http://nas:8765/arr/newznab" in page and "/arr/sabnzbd" in page
+    assert settings.arr_api_key() in page and len(settings.arr_api_key()) == 32
+    monkeypatch.setenv("ARR_ENABLED", "0")
+    assert "/arr/newznab" not in client.get("/").text
+
+
 def test_cross_site_post_rejected(env):
     client, *_ = env
     login(client)

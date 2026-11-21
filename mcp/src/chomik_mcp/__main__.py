@@ -84,7 +84,12 @@ def main(argv: list[str] | None = None) -> int:
     hosts = [h.strip() for h in os.environ.get("MCP_ALLOWED_HOSTS", "").split(",") if h.strip()]
     import uvicorn
 
-    app = http_app(build_server(tools), settings.token, hosts, panel.routes())
+    routes = list(panel.routes())
+    if os.environ.get("ARR_ENABLED", "1").lower() not in ("0", "false", "no"):
+        from .arr import ArrBridge
+
+        routes += ArrBridge(tools, settings.data["secret"], settings.arr_api_key).routes()
+    app = http_app(build_server(tools), settings.token, hosts, routes)
     uvicorn.run(app, host=a.host, port=a.port, log_level="info")
     return 0
 

@@ -7,9 +7,12 @@ services:
       - "8765:8765"
     environment:
       - PANEL_PASSWORD=${PANEL_PASSWORD:?set PANEL_PASSWORD in .env}
+      # Sonarr/Radarr fallback: put downloads where the arr containers see them (see mcp/README.md)
+      # - ARR_COMPLETE_DIR=/downloads/chomik
     env_file:
       - path: .env
         required: false
     volumes:
       - ./data:/data
+      # - /volume1/downloads:/downloads   # same mount as in your Sonarr/Radarr containers
     restart: unless-stopped

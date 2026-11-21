@@ -296,6 +296,21 @@ class ChomikClient:
                         return f
         raise DownloadError(f"chomikuj withheld the download URL for {f.name!r} after {len(delays)} attempts")
 
+    def resolve_hit(self, hit) -> RemoteFile:
+        """Turn a search.SearchHit (or anything with id, name, folder_path) into a downloadable RemoteFile.
+
+        Lists the containing folder to get the exact size and the agreement.
+        Falls back to matching by name, since the SOAP listing was seen to
+        renumber or hide duplicates.
+        """
+        listing = self.list_files(hit.folder_path, missing_ok=True)
+        match = next((f for f in listing.files if f.id == str(hit.id)), None)
+        match = match or next((f for f in listing.files if f.name == hit.name), None)
+        if match is None:
+            raise DownloadError(f"{hit.name!r} is no longer listed in {hit.folder_path} "
+                                f"(deleted, moved, or the folder needs a password)")
+        return match
+
     def _download_inner(self, entries: str) -> str:
         return (
             f"<token>{self.token}</token>"

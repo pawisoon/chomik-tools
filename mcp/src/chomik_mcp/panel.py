@@ -49,7 +49,17 @@ T = {  # Polish UI strings (DeepL)
     "no_form": "Nie udało mi się znaleźć formularza do podania hasła pod tym linkiem. "
                "Czy ten folder naprawdę jest chroniony hasłem?",
     "copied": "Skopiowano",
+    "arr": "Sonarr i Radarr",
+    "arr_hint": "Dodaj chomikuj.pl jako indeksator „Generic Newznab” i jako klienta pobierania „SABnzbd”. "
+                "Pobrane pliki trafiają do folderu poniżej; Sonarr i Radarr muszą go widzieć pod tą samą ścieżką.",
+    "arr_indexer": "Adres indeksatora (Newznab, API Path: /api)",
+    "arr_sab": "SABnzbd: host i port", "arr_base": "SABnzbd: URL Base", "arr_key": "Klucz API (dla obu)",
+    "arr_dir": "Folder z pobranymi plikami",
 }
+
+
+def arr_enabled() -> bool:
+    return os.environ.get("ARR_ENABLED", "1").lower() not in ("0", "false", "no")
 
 
 def _e(s) -> str:
@@ -342,6 +352,32 @@ class Panel:
           <pre class="code" id="cfg">{_e(config_masked)}</pre>
           <textarea id="cfgfull" hidden>{_e(config)}</textarea>
           <div class="row"><button class="btn ghost small" type="button" onclick="copyText(document.getElementById('cfgfull').value, this)">{T['copy']}</button>{regen}</div>
+        </section>{self._arr_card(request, host)}"""
+
+    def _arr_card(self, request: Request, host: str) -> str:
+        if not arr_enabled():
+            return ""
+        key = self.settings.arr_api_key()
+        base = f"{request.url.scheme}://{host}"
+        done = os.environ.get("ARR_COMPLETE_DIR") or os.path.join(
+            os.environ.get("CHOMIK_DOWNLOAD_DIR") or "/data/downloads", "arr")
+
+        def row(label, value, fid, secret=False):
+            show = (f"""<button class="btn ghost small" type="button" onclick="const t=document.getElementById('{fid}');"""
+                    f"""t.type=t.type==='password'?'text':'password'">{T['show']}</button>""" if secret else "")
+            return (f"""<label>{label}<div class="copyrow"><input readonly {'type="password" ' if secret else ''}"""
+                    f"""value="{_e(value)}" id="{fid}">{show}<button class="btn ghost small" type="button" """
+                    f"""onclick="copyField('{fid}', this)">{T['copy']}</button></div></label>""")
+
+        return f"""
+        <section class="card" id="arr">
+          <h2>{T['arr']}</h2>
+          <p class="muted">{T['arr_hint']}</p>
+          {row(T['arr_indexer'], base + "/arr/newznab", "arrnz")}
+          {row(T['arr_sab'], host, "arrhost")}
+          {row(T['arr_base'], "/arr/sabnzbd", "arrbase")}
+          {row(T['arr_key'], key, "arrkey", secret=True)}
+          {row(T['arr_dir'], done, "arrdir")}
         </section>"""
 
 

@@ -11,8 +11,9 @@ import os
 import sys
 import threading
 
-from chomik_core import ChomikClient, Folder, chomik_path, path_from_url, split_path, walk_public
+from chomik_core import ChomikClient, Folder, Searcher, chomik_path, path_from_url, split_path, walk_public
 from chomik_core.passwords import Passwords
+from chomik_core.search import hit_from_url
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 
@@ -22,7 +23,8 @@ from .jobs import Job, Jobs
 INSTRUCTIONS = """\
 Tools for chomikuj.pl accounts configured on this server.
 - Refer to accounts by letter (see `accounts`) or username. A path is "A:/Folder/Sub" or a chomikuj.pl URL.
-- download, upload, clone_* start background jobs; poll them with job_status.
+- `search` finds files across all of chomikuj.pl (no account needed); pass a hit's `url` to download_file.
+- download, download_file, upload, clone_* start background jobs; poll them with job_status.
 - Nothing is ever deleted on chomikuj.pl. Passwords are read from the server's config, never passed in.
 - Run clone_account / clone_public with dry_run=true first to see what will be copied.
 """
@@ -46,9 +48,10 @@ def _safe_name(name: str) -> str:
 
 
 class Tools:
-    def __init__(self, config: Config | None = None, client_factory=None):
+    def __init__(self, config: Config | None = None, client_factory=None, searcher: Searcher | None = None):
         self.config = config or Config()
         self.jobs = Jobs(os.path.join(self.config.state_dir, "jobs"))
+        self.searcher = searcher or Searcher()
         self._client_factory = client_factory or (lambda letter: ChomikClient.from_env(f"CHOMIK_{letter}_"))
         self._clients: dict[str, ChomikClient] = {}
         self._lock = threading.Lock()
@@ -169,6 +172,32 @@ class Tools:
         job = self.jobs.thread("download", f"{owner}:/{'/'.join(parts)} -> {base}", work)
         return {"job_id": job.id, "saving_to": base}
 
+    def search(self, query: str, file_type: str = "all", min_size_mb: float | None = None,
+               max_size_mb: float | None = None, page: int = 1) -> dict:
+        res = self.searcher.search(query, file_type=file_type, size_from_mb=int(min_size_mb or 0),
+                                   size_to_mb=int(max_size_mb or 0), page=page)
+        hits = [{"name": h.name, "size": h.size_text, "size_bytes_approx": h.size_bytes, "owner": h.owner,
+                 "folder": h.folder_path, "date": h.date.isoformat() if h.date else None, "url": h.url}
+                for h in res.hits]
+        return {"query": query, "page": res.page, "has_next": res.has_next, "count": len(hits), "hits": hits}
+
+    def download_file(self, url: str, as_account: str | None = None) -> dict:
+        hit = hit_from_url(url)
+        reader = self.client(as_account or self._default_reader(), fresh=True)
+        _, parts = split_path(hit.folder_path)
+        dest = _inside(self.config.download_dir, _safe_name(hit.owner), *[_safe_name(p) for p in parts],
+                       _safe_name(hit.name))
+
+        def work(job: Job):
+            f = reader.resolve_hit(hit)
+            job.progress.update(current=f.name, size_bytes=f.size, bytes=0)
+            reader.download_to(f, dest, on_progress=lambda done, total: job.progress.update(bytes=done))
+            job.progress["current"] = None
+            job.say(f"saved {os.path.relpath(dest, self.config.download_dir)}")
+
+        job = self.jobs.thread("download", f"{hit.owner}: {hit.name} -> {dest}", work)
+        return {"job_id": job.id, "saving_to": dest}
+
     def upload(self, local_path: str, account: str, dest_folder: str = "") -> dict:
         src = _inside(self.config.upload_dir, local_path.lstrip("/"))
         if not os.path.exists(src):
@@ -249,6 +278,19 @@ def build_server(tools: Tools | None = None) -> MCPServer:
                  max_size_mb: float | None = None) -> dict:
         """Download a folder ("A:/Folder" or a chomikuj.pl URL) to the server's download folder. Starts a job."""
         return t.download(source, as_account, recursive, max_size_mb)
+
+    @server.tool(annotations=READ)
+    def search(query: str, file_type: str = "all", min_size_mb: float | None = None,
+               max_size_mb: float | None = None, page: int = 1) -> dict:
+        """Search files across all of chomikuj.pl. file_type: all, video, image, music, document, archive,
+        application. 25 hits per page; sizes are rounded. Download a hit with download_file(url)."""
+        return t.search(query, file_type, min_size_mb, max_size_mb, page)
+
+    @server.tool(annotations=WRITE)
+    def download_file(url: str, as_account: str | None = None) -> dict:
+        """Download one file by its chomikuj.pl link (e.g. a search hit's url), paid from `as_account`'s
+        transfer (default: first account). Starts a job."""
+        return t.download_file(url, as_account)
 
     @server.tool(annotations=WRITE)
     def upload(local_path: str, account: str, dest_folder: str = "") -> dict:
