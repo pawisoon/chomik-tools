@@ -71,6 +71,25 @@ def test_match_rules():
     assert match(hit("Łódź S01E01.mkv"), Wanted("Łódź", None, 1, 1)).title.startswith("Lodz.S01E01")
 
 
+def test_tv_rejects_other_shows_sharing_the_title():
+    # Real hits for "Ranczo S01E01" (2026-11-21)
+    tv = Wanted("Ranczo", None, 1, 1)
+    assert match(hit("Ranczo Duttonów S01E01.avi", folder="/u/Ranczo+Dutton*c3*b3w"), tv) is None
+    assert match(hit("S01E01_Dino_ranczo.mp4", folder="/u/Bajki/Dino+ranczo"), tv) is None
+    assert match(hit("Ranczo S01E01 Spadek (001).mkv", size=704 * 1024**2), tv).title == \
+        "Ranczo.S01E01.720p.WEBRip-Chomikuj"  # no tag: 704 MB episode guessed as 720p
+    assert match(hit("001.Ranczo.s01e01.avi", folder="/u/Ranczo+serial/Sezon+1"), tv) is not None
+    r = match(hit("Ranczo - odc. 1 – Spadek (Sezon 1).mp4", folder="/u/RANCZO+Sezon+1+*282006*29"), tv)
+    assert r is not None and (r.season, r.episode) == (1, 1)
+    assert match(hit("079 Ranczo sezon7  odc.1.mp4", folder="/u/Ranczo"), tv) is None  # season 7
+
+
+def test_tv_queries_are_targeted():
+    assert ArrBridge.queries(Wanted("Ranczo", None, 1, 2)) == ["Ranczo S01E02", "Ranczo odc 2"]
+    assert ArrBridge.queries(Wanted("Ranczo", None, 3)) == ["Ranczo S03", "Ranczo sezon 3"]
+    assert ArrBridge.queries(Wanted("Big Buck Bunny", 2008)) == ["Big Buck Bunny"]
+
+
 # ------------------------------------------------------------------- bridge
 
 
@@ -263,3 +282,5 @@ def test_sab_config_for_arr_test_button(setup):
     cfg = c.get(f"/arr/sabnzbd/api?mode=get_config&apikey={KEY}&output=json").json()["config"]
     assert cfg["misc"]["complete_dir"] == bridge.complete_dir
     assert any(cat["name"] == "radarr" for cat in cfg["categories"])
+    # Sonarr's RemotePathMappingCheck errors when the category folder doesn't exist yet
+    assert os.path.isdir(os.path.join(bridge.complete_dir, "sonarr"))

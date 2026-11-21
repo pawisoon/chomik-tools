@@ -18,8 +18,8 @@ VIDEO_EXT = {"mkv", "mp4", "avi", "m4v", "mov", "wmv", "ts", "m2ts", "mpg", "mpe
 
 _SXXEYY = re.compile(r"(?i)(?<![a-z0-9])s(\d{1,2})[ ._-]?e(\d{1,3})(?!\d)")
 _NXNN = re.compile(r"(?i)(?<![a-z0-9])(\d{1,2})x(\d{2,3})(?!\d)")
-_SEASON_WORD = re.compile(r"(?i)(?<![a-z0-9])(?:s|sezon|season)[ ._-]?(\d{1,2})(?!\d)")
-_EPISODE_WORD = re.compile(r"(?i)(?<![a-z0-9])(?:odcinek|odc|episode|ep|e)[ ._-]?(\d{1,3})(?!\d)")
+_SEASON_WORD = re.compile(r"(?i)(?<![a-z0-9])(?:s|sezon|season|seria)[ ._-]{0,3}(\d{1,2})(?!\d)")
+_EPISODE_WORD = re.compile(r"(?i)(?<![a-z0-9])(?:odcinek|odc|episode|ep|e)[ ._-]{0,3}(\d{1,3})(?!\d)")
 _YEAR = re.compile(r"(?<!\d)(19[3-9]\d|20[0-4]\d)(?!\d)")
 _RES = re.compile(r"(?i)(?<![a-z0-9])(2160p|4k|uhd|1080p|1080i|720p|576p|480p)(?![a-z0-9])")
 _SOURCES = [
@@ -49,6 +49,23 @@ def fold(text: str) -> str:
 
 def words(text: str) -> list[str]:
     return [w for w in fold(text).split() if w]
+
+
+# Words that may sit next to a show name in a file or folder name without making it another show.
+_NOISE = _STOP | {"serial", "seriale", "sezon", "season", "seria", "odc", "odcinek", "odcinki", "episode", "ep",
+                  "pl", "lektor", "dubbing", "napisy", "polski", "polish", "full", "hd", "caly", "calosc",
+                  "complete", "tv", "dvd", "rip", "x264", "x265", "h264", "hevc", "xvid", "divx", "ac3", "aac"}
+_MARKERS = [_SXXEYY, _NXNN, _SEASON_WORD, _EPISODE_WORD, _YEAR, _RES, *(rx for rx, _ in _SOURCES)]
+
+
+def show_words(text: str) -> set[str]:
+    """Words of the name part before the first episode/year/quality marker, minus noise and numbers.
+
+    'Ranczo - odc. 1 – Spadek (Sezon 1)' -> {'ranczo'}; '001.Ranczo.s01e01' -> {'ranczo'};
+    'Ranczo Duttonów S01E01' -> {'ranczo', 'duttonow'}; 'Sezon 1' -> set().
+    """
+    cut = min([m.start() for rx in _MARKERS if (m := rx.search(text))] or [len(text)])
+    return {w for w in words(text[:cut]) if w not in _NOISE and not w.isdigit()}
 
 
 @dataclass(frozen=True)
@@ -131,6 +148,15 @@ def match(hit: SearchHit, wanted: Wanted, *, min_bytes: int = 0, max_bytes: int 
 
     if wanted.is_tv:
         if season != wanted.season or episode is None:
+            return None
+        # Series names collide ("Ranczo" vs "Ranczo Duttonów"): the show part of the file name, or else of
+        # one of its folders, must be exactly the title.
+        title = set(need)
+        show = show_words(stem)
+        if show:
+            if show != title:
+                return None
+        elif not any(show_words(f) == title for f in folders[-3:]):
             return None
         if wanted.episode is not None and episode != wanted.episode:
             return None

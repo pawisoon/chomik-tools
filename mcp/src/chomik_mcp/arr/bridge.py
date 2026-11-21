@@ -95,16 +95,26 @@ class ArrBridge:
 
     # ------------------------------------------------------------- search
 
-    def _search(self, wanted: Wanted) -> list[SearchHit]:
-        query = wanted.title
-        key = (query.lower(), self.cfg.min_size_mb, self.cfg.max_size_mb, self.cfg.pages)
+    @staticmethod
+    def queries(wanted: Wanted) -> list[str]:
+        """What to type into chomikuj search. A bare series title buries the episode under hundreds of
+        files, but the site matches 'S01E02' and 'odc 2' as words, so TV gets targeted queries."""
+        t = wanted.title
+        if wanted.is_tv and wanted.episode is not None:
+            return [f"{t} S{wanted.season:02d}E{wanted.episode:02d}", f"{t} odc {wanted.episode}"]
+        if wanted.is_tv:
+            return [f"{t} S{wanted.season:02d}", f"{t} sezon {wanted.season}"]
+        return [t]
+
+    def _search_one(self, query: str, pages: int) -> list[SearchHit]:
+        key = (query.lower(), self.cfg.min_size_mb, self.cfg.max_size_mb, pages)
         now = time.time()
         with self._cache_lock:
-            hit = self._cache.get(key)
-            if hit and now - hit[0] < self.cfg.cache_seconds:
-                return hit[1]
+            cached = self._cache.get(key)
+            if cached and now - cached[0] < self.cfg.cache_seconds:
+                return cached[1]
         hits: list[SearchHit] = []
-        for page in range(1, max(1, self.cfg.pages) + 1):
+        for page in range(1, max(1, pages) + 1):
             res = self.searcher.search(query, file_type="video", size_from_mb=int(self.cfg.min_size_mb),
                                        size_to_mb=int(self.cfg.max_size_mb), page=page)
             hits += res.hits
@@ -112,6 +122,12 @@ class ArrBridge:
                 break
         with self._cache_lock:
             self._cache[key] = (now, hits)
+        return hits
+
+    def _search(self, wanted: Wanted) -> list[SearchHit]:
+        hits: list[SearchHit] = []
+        for q in self.queries(wanted):
+            hits += self._search_one(q, self.cfg.pages)
         return hits
 
     def find(self, wanted: Wanted) -> list[Release]:
@@ -281,6 +297,12 @@ class ArrBridge:
         cats = {"tv", "movies", "sonarr", "radarr", "tv-sonarr", "radarr-movies"}
         if os.path.isdir(self.complete_dir):
             cats |= {d for d in os.listdir(self.complete_dir) if os.path.isdir(os.path.join(self.complete_dir, d))}
+        # Like SABnzbd, keep category folders in place: the arrs' health check warns when they're missing.
+        for c in cats:
+            try:
+                os.makedirs(os.path.join(self.complete_dir, c), exist_ok=True)
+            except OSError:
+                break
         return sorted(cats)
 
     def _sab_config(self) -> dict:
